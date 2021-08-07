@@ -31,12 +31,21 @@ def compute_rigid_transf(pc_target, pc_src):
     R = np.matmul(V_T.T, U)
     t = pc_target - np.matmul(R, pc_src)
 
-    assert np.linalg.det(R) == 1
+    # assert np.linalg.det(R) == 1
     return R, t
 
 
 def main():
-    array_fix, array_move, array_move_reorder = read_data(show=True)
+    array_fix, array_move, array_move_reorder = read_data(show=False)
+    """vis"""
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.scatter(array_fix[:, 0], array_fix[:, 1], array_fix[:, 2])
+    ax.scatter(array_move[:, 0], array_move[:, 1], array_move[:, 2])
+    ax.set_xlabel('X Label')
+    ax.set_ylabel('Y Label')
+    ax.set_zlabel('Z Label')
+    plt.show()
     R, t = compute_rigid_transf(pc_target=array_fix, pc_src=array_move)
     # tranf_rigid = np.concatenate(R, t, axis=0)
     array_move = np.dot(R, array_move) + t
