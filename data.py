@@ -13,7 +13,7 @@
 # import lib
 import numpy as np
 import matplotlib.pyplot as plt
-
+import open3d as o3
 
 def reorder_data(points):
     return np.sort(points, axis=0)
@@ -46,8 +46,19 @@ def read_data(reorder=False, show=False):
     return array_fix, array_move, array_move_reorder
 
 
+def read_data_(reorder=False, show=False):
+    file_fix = r'./data/point_cloud.txt'
+    array_fix = np.loadtxt(file_fix)
+    # array_fix = array_fix[:10000]
+    print(array_fix.shape)
+    pc = o3.geometry.PointCloud()
+    pc.points = o3.utility.Vector3dVector(array_fix)
+    pc.voxel_down_sample(1)
+    o3.visualization.draw_geometries([pc])
+
+
 def main():
-    read_data(show=True)
+    read_data_(show=True)
 
 
 if __name__ == '__main__':

@@ -11,43 +11,35 @@
 '''
 
 # import lib
+import os
+import cv2
 import numpy as np
-import matplotlib.pyplot as plt
+# from functions import quadratic, tuplti
 
 
-def ordinary_least_square(A, b):
-    """
-    solve this by ordinary_least_square, give a combination of columns in A to be projection of b on A (
-    :param A: space
-    :param b: desired projection
-    :return:
-    """
-    assert isinstance(A, np.ndarray) and isinstance(b, np.ndarray)
-    assert A.shape[0] > A.shape[1] and len(A.shape) == 2, A.shape
-    assert A.shape[0] == b.shape[0], str(A.shape) + ', ' + str(b.shape)
-    #                <<<<<<<<<<<<<<<< pseudo-inverse >>>>>>>>>>>>>>>
-    return np.matmul(np.matmul(np.linalg.inv(np.matmul(A.T, A)), A.T), b)   # compute the pseudo-inverse
+def least_square(A, b):
+    x = np.matmul(np.matmul(np.linalg.inv(np.matmul(A.T, A)), A.T), b)  # compute the pseudo-inverse
+    return x
 
 
-def Ridge_regression(A, b, lambda_):
-    """
-    solve the a the combination of columns in A to be projection of b on A
-    :param A: space
-    :param b: desired projection
-    :return:
-    """
-    assert isinstance(A, np.ndarray) and isinstance(b, np.ndarray)
-    assert A.shape[0] > A.shape[1] and len(A.shape) == 2,  A.shape
-    assert A.shape[0] == b.shape[0], str(A.shape) + ', ' + str(b.shape)
-    return np.matmul(np.linalg.inv(np.matmul(A.T, A)) + lambda_ * np.eye(A.shape[1]), np.matmul(A.T, b))   # compute the pseudo-inverse
-
-
-def solve_null_space(A):
-    assert isinstance(A, np.ndarray)
-    assert len(A.shape) == 2, A.shape
-    assert np.linalg.matrix_rank(A) == min(A.shape) - 1, 'null space is more than one dimension'
-
-    return
+def ransac(A, b):
+    iter_max = 1000
+    num_ele_min = A.shape[-1]
+    x_best = np.zeros((A.shape[-1], 1))
+    error_best = rms_error(np.dot(A, x_best), b)
+    for it in range(iter_max):
+        index_smallest = np.random.choice(len(A), num_ele_min, replace=False)
+        A_smallest, b_smallest = A[index_smallest], b[index_smallest]
+        if np.linalg.matrix_rank(A_smallest) < num_ele_min:
+            continue
+        x_cur = np.matmul(np.linalg.inv(A_smallest), b_smallest)
+        error_cur = rms_error(np.dot(A, x_cur), b)
+        if error_cur < error_best:
+            x_best, error_best = x_cur, error_cur
+        if error_best < 0.00001:
+            print(it, 'iter jump out')
+            return x_best
+    return x_best
 
 
 def rms_error(data_a, data_b):
@@ -64,40 +56,47 @@ def rms_error(data_a, data_b):
     return np.mean(np.linalg.norm(data_a - data_b, axis=1), axis=0)
 
 
+# def non_linear_least_square():
+
+
+def qrdecode(img):
+    qrcode = cv2.QRCodeDetector()
+    result, points = qrcode.detect(img)
+    print(result)
+    print(points)
+    # print(code)
+
+
 def main():
-    # make data to fit
-    paras = [3.4, -1.5, -2.2, 3.1, 2.1, 1.1]                                       # parameters
-    # a, b = 0.1, 0.2                                       # parameters
+    file_paths = os.listdir('./data/qrcode')
+    for file_path in file_paths:
+        file_path = './data/qrcode/' + file_path
 
-    t = np.linspace(-100, 100, 100)                                          # time
+        img = cv2.imread(file_path)
+        gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
-    for i in range(len(paras)):
-        A = np.ones(t.shape) if i == 0 else np.vstack((A, np.power(t, i)))   # time square, time, constant
-    A = A.T
+        # corners = cv2.goodFeaturesToTrack(img, maxCorners=4, qualityLevel=0.1, minDistance=100)
+        # corners = np.squeeze(corners, axis=1)
+        #
+        # print(corners.shape)
+        # for p in corners:
+        #     p = tuple(p.astype(int).tolist())
+        #     img = cv2.circle(img, p, radius=10, color=(0, 0, 1))
 
-    amp = 1
-    noise = np.random.random(A.shape)
-    A_noise = A + noise * amp
+        # contours, _ = cv2.findContours(gray, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_NONE)
+        # print(len(contours), contours[0].shape)
 
-    # para_expect = np.array([a, b, c]).reshape(A.shape[1], 1)
-    para_expect = np.array(paras).reshape(A.shape[1], 1)
-    proj = np.matmul(A_noise, para_expect)                                              # expect observations
+        # img_ = cv2.drawContours(img, contours, contourIdx=-1, color=(0, 0, 255), thickness=10)
 
-    plt.scatter(t, proj)
-    # proj = np.sort(proj, axis=0)
-    # plt.scatter(t, proj)
-    plt.show()
+        cv2.namedWindow(file_path, 0)
+        cv2.imshow(file_path, gray)
+        cv2.waitKey(0)
+        cv2.destroyWindow(file_path)
 
-    # solve linear_least_square
-    x_ = ordinary_least_square(A, proj)
-    proj_ = np.matmul(A, x_)                                            # observation according to line fitting
-    # y_ = np.squeeze(y_, axis=-1).reshape(t.shape[0], -1)
-    print(x_)
-    plt.scatter(t, proj)
-    # plt.show()
-    plt.plot(t, proj_)
-    plt.show()
+        print(file_path)
+        qrdecode(gray)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
+
